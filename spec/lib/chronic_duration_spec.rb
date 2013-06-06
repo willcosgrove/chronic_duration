@@ -238,6 +238,10 @@ describe ChronicDuration do
       ChronicDuration.instance_eval("filter_by_type('4 hours')").should == '4 hours'
     end
 
+    it "recieves chrono-formatted time like 3:14 with default unit of hours and returns a human time like 3 hours 14 minutes" do
+      ChronicDuration.instance_eval("filter_by_type('3:14', no_seconds: true)").should == '3 hours 14 minutes'
+    end
+
   end
 
   describe ".cleanup" do
@@ -252,6 +256,10 @@ describe ChronicDuration do
 
     it "inserts spaces where there aren't any" do
       ChronicDuration.instance_eval("cleanup('4m11.5s')").should == '4 minutes 11.5 seconds'
+    end
+
+    it "recieves chrono-formatted time like 3:14 with default unit of hours and returns a human time like 3 hours 14 minutes" do
+      ChronicDuration.instance_eval("cleanup('4:3:14', default_unit: 'hours')").should == '4 hours 3 minutes 14 seconds'
     end
 
   end
