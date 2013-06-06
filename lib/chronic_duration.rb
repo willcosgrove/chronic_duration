@@ -21,7 +21,7 @@ module ChronicDuration
   # return an integer (or float, if fractions of a
   # second are input)
   def parse(string, opts = {})
-    result = calculate_from_words(cleanup(string), opts)
+    result = calculate_from_words(cleanup(string, opts), opts)
     (!opts[:keep_zero] and result == 0) ? nil : result
   end
 
@@ -157,9 +157,13 @@ private
     val
   end
 
-  def cleanup(string)
+  def cleanup(string, opts={})
     res = string.downcase
-    res = filter_by_type(Numerizer.numerize(res))
+    if opts[:default_unit] == "hours"
+      res = filter_by_type(Numerizer.numerize(res), no_seconds: true)
+    else
+      res = filter_by_type(Numerizer.numerize(res))
+    end
     res = res.gsub(float_matcher) {|n| " #{n} "}.squeeze(' ').strip
     res = filter_through_white_list(res)
   end
@@ -171,6 +175,7 @@ private
   def duration_units_list
     %w(seconds minutes hours days weeks months years)
   end
+
   def duration_units_seconds_multiplier(unit)
     return 0 unless duration_units_list.include?(unit)
     case unit
@@ -185,8 +190,12 @@ private
   end
 
   # Parse 3:41:59 and return 3 hours 41 minutes 59 seconds
-  def filter_by_type(string)
-    chrono_units_list = duration_units_list.reject {|v| v == "weeks"}
+  def filter_by_type(string, opts={})
+    if !opts[:no_seconds] || string.split(':').size > 2
+      chrono_units_list = duration_units_list.reject {|v| v == "weeks"}
+    else
+      chrono_units_list = duration_units_list.reject {|v| v == "weeks" || v == "seconds"}
+    end
     if string.gsub(' ', '') =~ /#{float_matcher}(:#{float_matcher})+/
       res = []
       string.gsub(' ', '').split(':').reverse.each_with_index do |v,k|
@@ -220,8 +229,8 @@ private
         raise DurationParseError, "An invalid word #{word.inspect} was used in the string to be parsed."
       end
     end
-    # add '1' at front if string starts with something recognizable but not with a number, like 'day' or 'minute 30sec' 
-    res.unshift(1) if res.length > 0 && mappings[res[0]]  
+    # add '1' at front if string starts with something recognizable but not with a number, like 'day' or 'minute 30sec'
+    res.unshift(1) if res.length > 0 && mappings[res[0]]
     res.join(' ')
   end
 
